@@ -1,0 +1,21 @@
+name: Comparacion de Tokens
+
+on: [push]
+
+jobs:
+  comparar:
+    runs-on: self-hosted
+    steps:
+      - name: Comparar DEV_TOKEN con LOCAL_DEV_TOKEN
+        shell: powershell
+        env:
+          SECRET_GITHUB: ${{ secrets.DEV_TOKEN }}
+        run: |
+          Write-Host "Comparando tokens..."
+          if ($env:SECRET_GITHUB -eq $env:LOCAL_DEV_TOKEN) {
+            Write-Host "EXITO: Los tokens coinciden correctamente."
+            exit 0
+          } else {
+            Write-Host "ERROR: Los tokens NO coinciden."
+            exit 1
+          }
