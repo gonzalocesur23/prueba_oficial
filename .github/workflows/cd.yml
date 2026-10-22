@@ -1,0 +1,44 @@
+name: CD Workflow
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Incrementar version en README
+        run: |
+          VERSION=$(grep -oP 'AppVersion-\K\d+' README.md | head -1)
+          NEW_VERSION=$((VERSION+1))
+          DATE=$(date '+%Y-%m-%d %H:%M:%S')
+          sed -i "s/AppVersion-$VERSION/AppVersion-$NEW_VERSION - $DATE/" README.md
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add README.md
+          git commit -m "Incremento a AppVersion-$NEW_VERSION"
+          git push
+
+  validate-prod:
+    needs: bump-version
+    runs-on: self-hosted
+    steps:
+      - name: Comparar PROD_TOKEN
+        shell: powershell
+        env:
+          SECRET_PROD: ${{ secrets.PROD_TOKEN }}
+        run: |
+          if ($env:SECRET_PROD -eq $env:LOCAL_PROD_TOKEN) {
+            Write-Host "Tokens coinciden."
+            exit 0
+          } else {
+            Write-Host "Error: Tokens no coinciden."
+            exit 1
+          }

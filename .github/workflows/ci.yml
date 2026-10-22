@@ -1,0 +1,41 @@
+name: CI Workflow
+on:
+  push:
+    branches: [ "develop" ]
+  pull_request:
+    branches: [ "develop" ]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Actualizar README con feature
+        run: |
+          echo "Añadida feature: ${{ github.head_ref || github.ref_name }}" >> README.md
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add README.md
+          git commit -m "Añadida info de la feature al README"
+          git push
+
+  validate-dev:
+    needs: update-readme
+    runs-on: self-hosted
+    steps:
+      - name: Comparar DEV_TOKEN
+        shell: powershell
+        env:
+          SECRET_DEV: ${{ secrets.DEV_TOKEN }}
+        run: |
+          if ($env:SECRET_DEV -eq $env:LOCAL_DEV_TOKEN) {
+            Write-Host "Tokens coinciden."
+            exit 0
+          } else {
+            Write-Host "Error: Tokens no coinciden."
+            exit 1
+          }
